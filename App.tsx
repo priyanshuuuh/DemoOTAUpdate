@@ -6,6 +6,8 @@
  */
 
 import React from 'react';
+import { withStallion } from '@clinikally/airship-sdk';
+
 import type {PropsWithChildren} from 'react';
 import {
   ScrollView,
@@ -128,4 +130,6 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+const AppWithAirship = withStallion(App);
+
+export default AppWithAirship;
