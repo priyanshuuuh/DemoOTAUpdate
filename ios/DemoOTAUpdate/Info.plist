@@ -48,5 +48,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>StallionProjectId</key>
+	<string>demo-ota-app</string>
 </dict>
 </plist>

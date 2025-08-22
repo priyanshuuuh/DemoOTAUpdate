@@ -2,7 +2,7 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
-import react_native_stallion  
+import airship_sdk  
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -40,16 +40,21 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
   }
 
   override func bundleURL() -> URL? {
-#if DEBUG
-    // 🔹 In Debug → Metro bundler
-    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
-#else
-    // 🔹 In Release → Stallion OTA (fallback to embedded bundle if nil)
-    if let stallionURL = StallionModule.getBundleURL() {
-      return stallionURL
+    // 🔹 Always try Airship OTA first, fallback to Metro in debug or embedded bundle
+    if let airshipURL = StallionModule.getBundleURL() {
+      print("🚀 Using Airship OTA bundle: \(airshipURL)")
+      return airshipURL
     } else {
+      print("⚠️ No Airship bundle available, using fallback")
+#if DEBUG
+      // 🔹 Debug fallback → Metro bundler
+      print("📱 Debug mode: Using Metro bundler")
+      return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
+#else
+      // 🔹 Release fallback → Embedded bundle
+      print("📦 Release mode: Using embedded bundle")
       return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
-    }
 #endif
+    }
   }
 }
