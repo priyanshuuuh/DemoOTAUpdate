@@ -343,7 +343,7 @@ The new airship-sdk version includes the correct API base URL configuration.
           }}>
           <Section title="🚀 Airship OTA Update Test">
             <Text style={[styles.highlight, {color: '#007AFF', fontSize: 20}]}>
-              OTA Update v10.21 clinikally - This is from Airship SDK!
+              OTA Update v10.15 clinikally - This is from Airship SDK!
             </Text>
             {'\n'}This change should appear via OTA update, not Metro bundler.
           </Section>

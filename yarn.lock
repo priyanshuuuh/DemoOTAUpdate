@@ -1048,10 +1048,10 @@
     rimraf "^6.0.1"
     semver "^7.7.2"
 
-"@clinikally/airship-sdk@^1.1.0":
-  version "1.1.0"
-  resolved "https://npm.pkg.github.com/download/@clinikally/airship-sdk/1.1.0/1a4136e0ff789451d64cb2779f7bc067c4dedf81"
-  integrity sha512-hNjTP4xJmKPvAbtXWxFKse1nSKaOoNU1MjUGbprZHDZcyfz2KJbMz/FF2fsM/DihwVyLW5FYY9+WNHhBGESYvA==
+"@clinikally/airship-sdk@^1.2.2":
+  version "1.2.2"
+  resolved "https://npm.pkg.github.com/download/@clinikally/airship-sdk/1.2.2/ffb25c6e0af5eb605c3e6b67b4d6b203781eb687"
+  integrity sha512-Xb9axt/WdRNrevBb6BDw6S1co7UzFs0QAUrMkBLioKqKU7cZnvpR/m21Wp5Wo+CB4t7Aqw63Amdeu/WqzGNNrg==
 
 "@eslint-community/eslint-utils@^4.2.0", "@eslint-community/eslint-utils@^4.4.0":
   version "4.7.0"
