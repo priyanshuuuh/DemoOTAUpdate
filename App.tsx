@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { withStallion } from '@clinikally/airship-sdk';
 
 import type {PropsWithChildren} from 'react';
@@ -18,6 +18,7 @@ import {
   View,
   Button,
   Alert,
+  Platform,
 } from 'react-native';
 
 import {
@@ -60,258 +61,92 @@ function Section({children, title}: SectionProps): React.JSX.Element {
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
-  const [otaStatus, setOtaStatus] = useState('Initializing...');
-  const [lastUpdate, setLastUpdate] = useState('Never');
   const [debugInfo, setDebugInfo] = useState('');
-  const [sdkDebugInfo, setSdkDebugInfo] = useState('');
-  const [bundleInfo, setBundleInfo] = useState('');
-  const [configInfo, setConfigInfo] = useState('');
+  const [stallionInfo, setStallionInfo] = useState('');
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
-  // Function to check SDK internal state
-  const checkSDKState = async () => {
-    setSdkDebugInfo('Checking Airship SDK state...');
+  // Auto-check Stallion module on app start
+  React.useEffect(() => {
+    console.log('🔍 App.tsx useEffect - checking Stallion module...');
     
+    setTimeout(() => {
+      console.log('🔍 Delayed check for Stallion module...');
+      checkStallionModule();
+    }, 2000);
+  }, []);
+
+  // Debug: Check Stallion native module
+  const checkStallionModule = async () => {
+    console.log('🔍 checkStallionModule called');
     try {
-      // Check what native modules are available
       const { NativeModules } = require('react-native');
+      console.log('🔍 Available NativeModules:', Object.keys(NativeModules));
+      
       const stallionModule = NativeModules.Stallion;
-      
-      console.log('🔍 Available NativeModules:', Object.keys(NativeModules).filter(key => key.toLowerCase().includes('stallion')));
       console.log('🔍 Stallion module:', stallionModule);
-      console.log('🔍 Stallion methods:', stallionModule ? Object.keys(stallionModule) : 'undefined');
       
-      // Try to access SDK methods if available
-      const bundleUrl = stallionModule?.getBundleURL?.();
-      const sdkStatus = stallionModule?.getUpdateStatus?.();
-      const lastCheck = stallionModule?.getLastUpdateCheck?.();
+      let info = `Platform: ${Platform.OS}\n`;
+      info += `Stallion Module Available: ${stallionModule ? 'YES' : 'NO'}\n`;
       
-      // Try to get SDK configuration and metadata
-      let configInfo = '';
-      let metaInfo = '';
-      
-      try {
-        const config = await stallionModule?.getStallionConfig?.();
-        configInfo = `Config: ${config || 'None'}`;
-        console.log('🔧 Stallion Config:', config);
-      } catch (error) {
-        configInfo = `Config Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      }
-      
-      try {
-        const meta = await stallionModule?.getStallionMeta?.();
-        metaInfo = `Meta: ${meta || 'None'}`;
-        console.log('📊 Stallion Meta:', meta);
-      } catch (error) {
-        metaInfo = `Meta Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      }
-      
-      let sdkInfo = 'SDK Internal State:\n';
-      sdkInfo += `Bundle URL: ${bundleUrl || 'None'}\n`;
-      sdkInfo += `Update Status: ${sdkStatus || 'Unknown'}\n`;
-      sdkInfo += `Last Check: ${lastCheck || 'Never'}\n`;
-      sdkInfo += `${configInfo}\n`;
-      sdkInfo += `${metaInfo}\n`;
-      
-      // Check if this is an OTA bundle or embedded bundle
-      if (bundleUrl) {
-        const isOTABundle = bundleUrl.includes('Documents') || bundleUrl.includes('Library') && !bundleUrl.includes('.app/');
-        const isEmbeddedBundle = bundleUrl.includes('.app/main.jsbundle');
-        sdkInfo += `Bundle Type: ${isOTABundle ? '🟢 OTA Downloaded' : isEmbeddedBundle ? '🔴 Embedded/Fallback' : '🟡 Unknown'}\n`;
-      }
-      
-      // Check if there's a downloaded bundle
-      if (bundleUrl) {
-        setBundleInfo(`Current Bundle: ${bundleUrl}`);
+      if (stallionModule) {
+        const methods = Object.keys(stallionModule);
+        console.log('🔍 Stallion methods:', methods);
+        info += `Methods: ${methods.join(', ')}\n\n`;
+        
+        // Try to get config info
+        try {
+          console.log('🔍 Calling getStallionConfig...');
+          const config = await stallionModule.getStallionConfig?.();
+          console.log('🔍 Config result:', config);
+          info += `Config: ${config || 'None'}\n`;
+        } catch (e: any) {
+          console.log('🔍 Config error:', e);
+          info += `Config Error: ${e?.message || 'Unknown'}\n`;
+        }
+        
+        // Try to get bundle info
+        try {
+          console.log('🔍 Calling getBundleURL...');
+          const bundleUrl = stallionModule.getBundleURL?.();
+          console.log('🔍 Bundle URL result:', bundleUrl);
+          info += `Bundle URL: ${bundleUrl || 'None'}\n`;
+        } catch (e: any) {
+          console.log('🔍 Bundle error:', e);
+          info += `Bundle Error: ${e?.message || 'Unknown'}\n`;
+        }
       } else {
-        setBundleInfo('No OTA bundle loaded');
+        console.log('❌ Stallion module not available');
       }
       
-      setSdkDebugInfo(sdkInfo);
-    } catch (error) {
-      setSdkDebugInfo(`SDK Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log('🔍 Final info:', info);
+      setStallionInfo(info);
+    } catch (error: any) {
+      console.log('❌ checkStallionModule error:', error);
+      setStallionInfo(`Error: ${error?.message || 'Unknown'}`);
     }
   };
 
-  // Function to force SDK update check and restart
-  const forceSDKUpdate = async () => {
-    setSdkDebugInfo('Forcing native SDK sync...');
-    
+  // Debug: Force sync
+  const forceSync = async () => {
     try {
       const { NativeModules } = require('react-native');
       const stallionModule = NativeModules.Stallion;
       
       if (stallionModule && stallionModule.sync) {
-        // First ensure the SDK is properly initialized by calling onLaunch
-        console.log('🔧 Initializing SDK with onLaunch...');
-        await stallionModule.onLaunch('debug-launch');
-        
-        console.log('🔄 Triggering native Stallion sync...');
+        setDebugInfo('Calling native sync...');
         await stallionModule.sync();
-        console.log('✅ Native sync call completed');
-        
-        // Wait a bit for sync to complete, then restart to load OTA bundle
-        setTimeout(async () => {
-          console.log('🔄 Restarting app to apply OTA bundle...');
-          setSdkDebugInfo('Restarting app to apply OTA bundle...');
-          await stallionModule.restart();
-        }, 5000);
-        
-        setSdkDebugInfo('Sync completed - restarting in 5 seconds to apply OTA bundle...');
+        setDebugInfo('Sync called successfully');
       } else {
-        setSdkDebugInfo('Native Stallion sync method not available');
+        setDebugInfo('Sync method not available');
       }
     } catch (error) {
-      console.log('❌ Native sync failed:', error);
-      setSdkDebugInfo(`Native sync error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setDebugInfo(`Sync error: ${error.message}`);
     }
   };
 
-  // Function to check current configuration
-  const checkConfiguration = () => {
-    setConfigInfo('Checking Airship SDK configuration...');
-    
-    const configSummary = `
-Current Configuration:
-• Project ID: demo-ota-app
-• Environment: prod 
-• Debug Mode: enabled
-• Configuration Source: withStallion initialization
-• API Base URL: Using updated airship-sdk default
-
-The new airship-sdk version includes the correct API base URL configuration.
-    `.trim();
-    
-    setConfigInfo(configSummary);
-  };
-
-  // Function to force rollback from corrupted OTA bundle
-  const forceRollback = async () => {
-    setSdkDebugInfo('Forcing rollback to default bundle...');
-    
-    try {
-      const { NativeModules } = require('react-native');
-      const stallionModule = NativeModules.Stallion;
-      
-      if (stallionModule && stallionModule.toggleStallionSwitch) {
-        // Get current meta to see state
-        const metaString = await stallionModule.getStallionMeta();
-        const meta = JSON.parse(metaString);
-        console.log('📊 Current meta before rollback:', meta);
-        
-        // Clear any corrupted state by switching to stage then back to prod
-        // This should trigger the rollback mechanism
-        console.log('🔄 Switching to STAGE mode...');
-        await stallionModule.toggleStallionSwitch('STAGE');
-        
-        setTimeout(async () => {
-          console.log('🔄 Switching back to PROD mode...');
-          await stallionModule.toggleStallionSwitch('PROD');
-          
-          setTimeout(async () => {
-            console.log('✅ Rollback completed, restarting...');
-            setSdkDebugInfo('Rollback completed - restarting app...');
-            await stallionModule.restart();
-          }, 1000);
-        }, 1000);
-        
-        setSdkDebugInfo('Rollback in progress - restarting in 3 seconds...');
-      } else {
-        setSdkDebugInfo('Native Stallion toggleStallionSwitch method not available');
-      }
-    } catch (error) {
-      console.log('❌ Rollback failed:', error);
-      setSdkDebugInfo(`Rollback error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
-  // Function to manually check for updates
-  const checkForUpdates = async () => {
-    setOtaStatus('Checking for updates...');
-    setDebugInfo('Making API request to check for updates...');
-    
-    try {
-      // Since we can't directly access the Airship SDK's internal methods,
-      // let's make a direct API call to see what the SDK should be getting
-      const response = await fetch('http://localhost:8000/api/v1/promoted/get-update-meta', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          projectId: 'demo-ota-app',
-          platform: 'ios',
-          appVersion: '1.0',
-          currentEnvironment: 'prod'
-        }),
-      });
-      
-      const data = await response.json();
-      
-      setDebugInfo(`API Response: ${JSON.stringify(data, null, 2)}`);
-      
-      if (data.updateAvailable) {
-        setOtaStatus(`Update Available: ${data.version}`);
-        setLastUpdate(`Available: ${data.version} (${data.bundleSize} bytes)`);
-        
-        // Also check SDK state after API call
-        setTimeout(checkSDKState, 1000);
-      } else {
-        setOtaStatus('No updates available');
-        setLastUpdate('Up to date');
-      }
-    } catch (error) {
-      setOtaStatus('Update check failed');
-      setDebugInfo(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      console.error('OTA Update check error:', error);
-    }
-  };
-
-  useEffect(() => {
-    // Check for updates when the app starts
-    checkForUpdates();
-    
-    // Also check SDK state initially
-    setTimeout(checkSDKState, 2000);
-    
-    // Listen for native Stallion events
-    const { NativeModules, NativeEventEmitter } = require('react-native');
-    const stallionModule = NativeModules.Stallion;
-    
-    if (stallionModule) {
-      const eventEmitter = new NativeEventEmitter(stallionModule);
-      const subscription = eventEmitter.addListener('STALLION_NATIVE_EVENT', (event: any) => {
-        console.log('📡 Native Stallion Event:', event);
-        
-        // Parse the event if it's a JSON string
-        try {
-          const eventData = typeof event === 'string' ? JSON.parse(event) : event;
-          if (eventData.type === 'SYNC_DEBUG') {
-            console.log('🔧 Native Sync Debug:', eventData.message);
-            setSdkDebugInfo(prev => prev + '\n' + eventData.message);
-          }
-        } catch (error) {
-          console.log('Event parsing error:', error);
-        }
-      });
-      
-      // Clean up subscription
-      return () => {
-        subscription.remove();
-      };
-    }
-    
-    // Check every 30 seconds for demo purposes
-    const interval = setInterval(() => {
-      checkForUpdates();
-      checkSDKState();
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, []);
 
   /*
    * To keep the template simple and small we're adding padding to prevent view
@@ -343,54 +178,28 @@ The new airship-sdk version includes the correct API base URL configuration.
           }}>
           <Section title="🚀 Airship OTA Update Test">
             <Text style={[styles.highlight, {color: '#007AFF', fontSize: 20}]}>
-              OTA Update v10.21 clinikally - This is from Airship SDK!
+              OTA Update v10.45 clinikally - This is from Airship SDK!
             </Text>
             {'\n'}This change should appear via OTA update, not Metro bundler.
+            {'\n\n'}Platform detection and OTA updates are now handled automatically by airship-sdk.
           </Section>
           
-          <Section title="🔍 OTA Debug Info">
-            <Text style={[styles.highlight, {color: '#FF6B35', fontSize: 16}]}>
-              Status: {otaStatus}
-            </Text>
+          <Section title="🔍 Debug: Stallion Module">
+            <Button title="Check Stallion Module" onPress={checkStallionModule} />
             {'\n'}
-            <Text style={{color: isDarkMode ? Colors.light : Colors.dark}}>
-              Last Update Check: {lastUpdate}
+            <Text style={{fontSize: 12, color: '#666', fontFamily: 'Courier'}}>
+              {stallionInfo}
             </Text>
-            {'\n'}
-            <Button title="Check for Updates Now" onPress={checkForUpdates} />
+          </Section>
+          
+          <Section title="🔧 Debug: Force Sync">
+            <Button title="Force OTA Sync" onPress={forceSync} />
             {'\n'}
             <Text style={{fontSize: 12, color: '#666', fontFamily: 'Courier'}}>
               {debugInfo}
             </Text>
           </Section>
           
-          <Section title="⚙️ Airship SDK Configuration">
-            <Text style={[styles.highlight, {color: '#E67E22', fontSize: 16}]}>
-              Runtime Configuration Status
-            </Text>
-            {'\n'}
-            <Button title="Check Current Config" onPress={checkConfiguration} />
-            {'\n'}
-            <Text style={{fontSize: 12, color: '#666', fontFamily: 'Courier'}}>
-              {configInfo}
-            </Text>
-          </Section>
-
-          <Section title="🔧 Airship SDK Debug">
-            <Text style={[styles.highlight, {color: '#9B59B6', fontSize: 16}]}>
-              Bundle Status: {bundleInfo || 'Checking...'}
-            </Text>
-            {'\n'}
-            <Button title="Check SDK State" onPress={checkSDKState} />
-            {' '}
-            <Button title="Force SDK Update" onPress={forceSDKUpdate} />
-            {' '}
-            <Button title="Force Rollback" onPress={forceRollback} />
-            {'\n'}
-            <Text style={{fontSize: 12, color: '#666', fontFamily: 'Courier'}}>
-              {sdkDebugInfo}
-            </Text>
-          </Section>
           <Section title="See Your Changes">
             <ReloadInstructions />
           </Section>

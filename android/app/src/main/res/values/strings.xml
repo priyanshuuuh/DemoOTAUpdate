@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">DemoOTAUpdate</string>
+    <string name="StallionProjectId">demo-ota-app</string>
+    <string name="StallionAppToken"></string>
 </resources>
