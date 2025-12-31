@@ -40,21 +40,30 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
   }
 
   override func bundleURL() -> URL? {
-    // 🔹 Always try Airship OTA first, fallback to Metro in debug or embedded bundle
-    if let airshipURL = StallionModule.getBundleURL() {
-      print("🚀 Using Airship OTA bundle: \(airshipURL)")
-      return airshipURL
-    } else {
+      // Always try Airship OTA first
+      if let airshipURL = StallionModule.getBundleURL() {
+          print("🚀 Using Airship OTA bundle: \(airshipURL)")
+          return airshipURL
+      }
+
       print("⚠️ No Airship bundle available, using fallback")
-#if DEBUG
-      // 🔹 Debug fallback → Metro bundler
-      print("📱 Debug mode: Using Metro bundler")
-      return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
-#else
-      // 🔹 Release fallback → Embedded bundle
+
+  #if DEBUG
+      // Check if Metro is available before trying
+      let metroURL = RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
+
+      if let url = metroURL {
+          print("📱 Debug mode: Using Metro bundler at \(url)")
+          return url
+      } else {
+          print("❌ Metro bundler unavailable, falling back to embedded bundle")
+          return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+      }
+  #else
       print("📦 Release mode: Using embedded bundle")
       return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
-#endif
-    }
+  #endif
   }
 }
+
+
